@@ -7,8 +7,8 @@
  */
 const CONFIG = {
   // Supabase – hent fra Dashboard → Settings → API
-  SUPABASE_URL: null,   // f.eks. 'https://xxxxxxxx.supabase.co'
-  SUPABASE_ANON_KEY: null,
+  SUPABASE_URL: 'https://yrprovsgrssyylsjeqea.supabase.com',   // f.eks. 'https://xxxxxxxx.supabase.co'
+  SUPABASE_ANON_KEY: 'sb_publishable_cIJ8v9tVgGKuEnMneI1CMg_JhU7TqDK',
 
   // Maks antall scores på leaderboard
   LEADERBOARD_LIMIT: 20
