@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klassisk modus – Tegnspill</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@400;500;600&display=swap');
+  :root { --bg-deep:#0a0a0f; --bg-card:#111118; --gold:#c9a84c; --gold-light:#e8d48b; --border:rgba(201,168,76,0.15); --text:#e8e4dc; --text-dim:#9a958a; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg-deep);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;padding:2rem}
+  .page{max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:2rem}
+  header a{color:var(--gold);font-size:0.9rem;text-decoration:none}
+  h1{font-family:'Cormorant Garamond',serif;font-size:2rem}
+  h1 em{color:var(--gold);font-style:italic}
+  .game-info{display:flex;justify-content:space-between;margin-bottom:1.5rem}
+  .score{color:var(--gold);font-size:1.2rem}
+  .drop-zones{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:2rem}
+  .drop-zone{min-height:120px;border:2px dashed var(--border);border-radius:8px;padding:1rem;transition:all 0.2s}
+  .drop-zone.drag-over{border-color:var(--gold);background:rgba(201,168,76,0.05)}
+  .drop-zone.sami{border-color:rgba(179,74,58,0.3)}
+  .drop-zone.egypt{border-color:rgba(42,122,106,0.3)}
+  .drop-zone.china{border-color:rgba(139,58,90,0.3)}
+  .zone-label{font-size:0.7rem;letter-spacing:0.15em;font-weight:600}
+  .symbol-pool{display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center;padding:1.5rem;background:var(--bg-card);border-radius:8px}
+  .symbol-card{width:70px;padding:0.75rem;background:rgba(201,168,76,0.06);border:1px solid var(--border);border-radius:6px;text-align:center;cursor:grab;transition:all 0.2s}
+  .symbol-card:hover{background:rgba(201,168,76,0.12);transform:translateY(-2px)}
+  .symbol-card.dragging{opacity:0.5}
+  .symbol-card.correct{border-color:#2a7a6a;background:rgba(42,122,106,0.15)}
+  .symbol-card.wrong{border-color:#b34a3a;background:rgba(179,74,58,0.15)}
+  .symbol-card .glyph{font-size:1.8rem;display:block}
+  .symbol-card .meaning{font-size:0.6rem;color:var(--text-dim)}
+  .result-screen{text-align:center;padding:2rem;display:none}
+  .result-screen.visible{display:block}
+  .final-score{font-size:3rem;color:var(--gold)}
+  .btn{border:1px solid var(--border);color:var(--gold);padding:0.5rem 1rem;background:transparent;cursor:pointer;margin-top:1rem}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <a href="spill.html">← Sprint-modus</a>
+    <h1>Klassisk <em>modus</em></h1>
+    <p style="color:var(--text-dim);margin-top:0.5rem">Dra symboler til riktig kultur</p>
+  </header>
+  <div class="game-container">
+    <div class="game-info">
+      <span class="score">Poeng: <span id="score">0</span>/<span id="total">0</span></span>
+      <button class="btn" id="btnRestart">Start på nytt</button>
+    </div>
+    <div class="drop-zones">
+      <div class="drop-zone sami" data-culture="sami"><span class="zone-label">Sámi</span></div>
+      <div class="drop-zone egypt" data-culture="egypt"><span class="zone-label">Egypt</span></div>
+      <div class="drop-zone china" data-culture="china"><span class="zone-label">Kina</span></div>
+    </div>
+    <div class="symbol-pool" id="pool"></div>
+  </div>
+  <div class="result-screen" id="result">
+    <h2>Ferdig!</h2>
+    <div class="final-score" id="finalScore">0/0</div>
+    <p id="msg"></p>
+    <button class="btn" id="btnAgain">Spill igjen</button>
+  </div>
+</div>
+<script>
+const SYMBOLS=[{glyph:'☀︎',meaning:'Beaivi',culture:'sami'},{glyph:'𓇳',meaning:'Ra',culture:'egypt'},{glyph:'日',meaning:'Rì',culture:'china'},{glyph:'☽',meaning:'Mánnu',culture:'sami'},{glyph:'𓇹',meaning:'Iah',culture:'egypt'},{glyph:'月',meaning:'Yuè',culture:'china'},{glyph:'✦',meaning:'Nástit',culture:'sami'},{glyph:'𓇼',meaning:'Seba',culture:'egypt'},{glyph:'星',meaning:'Xīng',culture:'china'},{glyph:'☥',meaning:'Ankh',culture:'egypt'},{glyph:'火',meaning:'Huǒ',culture:'china'},{glyph:'⊕',meaning:'Solkors',culture:'sami'},{glyph:'雨',meaning:'Yǔ',culture:'china'},{glyph:'鹿',meaning:'Lù',culture:'china'},{glyph:'魚',meaning:'Yú',culture:'china'},{glyph:'木',meaning:'Mù',culture:'china'},{glyph:'山',meaning:'Shān',culture:'china'},{glyph:'水',meaning:'Shuǐ',culture:'china'},{glyph:'人',meaning:'Rén',culture:'china'},];
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+let placed=0,correct=0,symbols=[];
+function init(){symbols=shuffle(SYMBOLS).slice(0,12);placed=0;correct=0;document.querySelector('.game-container').style.display='block';document.getElementById('result').classList.remove('visible');document.querySelectorAll('.drop-zone').forEach(z=>{z.innerHTML=`<span class="zone-label">${z.dataset.culture==='sami'?'Sámi':z.dataset.culture==='egypt'?'Egypt':'Kina'}</span>`});const pool=document.getElementById('pool');pool.innerHTML='';symbols.forEach((s,i)=>{const c=document.createElement('div');c.className='symbol-card';c.draggable=true;c.dataset.index=i;c.innerHTML=`<span class="glyph">${s.glyph}</span><span class="meaning">${s.meaning}</span>`;c.ondragstart=e=>{e.dataTransfer.setData('text',i);c.classList.add('dragging')};c.ondragend=()=>c.classList.remove('dragging');pool.appendChild(c)});document.getElementById('score').textContent='0';document.getElementById('total').textContent=symbols.length}
+document.querySelectorAll('.drop-zone').forEach(z=>{z.ondragover=e=>{e.preventDefault();z.classList.add('drag-over')};z.ondragleave=()=>z.classList.remove('drag-over');z.ondrop=e=>{e.preventDefault();z.classList.remove('drag-over');const i=+e.dataTransfer.getData('text');const card=document.querySelector(`.symbol-card[data-index="${i}"]`);if(!card||card.closest('.drop-zone'))return;const ok=symbols[i].culture===z.dataset.culture;if(ok)correct++;placed++;card.classList.add(ok?'correct':'wrong');card.draggable=false;z.appendChild(card);document.getElementById('score').textContent=correct;setTimeout(()=>{card.classList.remove('wrong');if(placed===symbols.length){document.querySelector('.game-container').style.display='none';document.getElementById('result').classList.add('visible');document.getElementById('finalScore').textContent=correct+'/'+symbols.length;document.getElementById('msg').textContent=correct===symbols.length?'Perfekt!':'Bra jobbet!';}},500)}});
+document.getElementById('btnRestart').onclick=document.getElementById('btnAgain').onclick=init;
+init();
+</script>
+</body>
+</html>

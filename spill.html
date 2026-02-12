@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tegnspill">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700&family=DM+Sans:wght@400;500;600&display=swap"></noscript>
+<title>Symbol-Sortereren – Tegnspill</title>
+<script src="config.js"></script>
+<style>
+  :root {
+    --bg-deep: #0a0a0f;
+    --bg-card: #111118;
+    --gold: #c9a84c;
+    --gold-light: #e8d48b;
+    --gold-dim: #8a7235;
+    --sand: #d4c5a0;
+    --text: #e8e4dc;
+    --text-dim: #9a958a;
+    --accent-sami: #b34a3a;
+    --accent-egypt: #2a7a6a;
+    --accent-china: #8b3a5a;
+    --border: rgba(201, 168, 76, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { max-width: 500px; margin: 0 auto; min-height: 100vh; padding: 1rem; position: relative; z-index: 1; }
+
+  .screen { display: none; min-height: 60vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  header { text-align: center; margin-bottom: 1.5rem; }
+  header a { color: var(--gold-dim); font-size: 0.8rem; text-decoration: none; }
+  header a:hover { color: var(--gold); }
+  h1 { font-family: 'Cormorant Garamond', serif; font-size: clamp(1.8rem, 5vw, 2.5rem); font-weight: 600; }
+  h1 em { font-style: italic; color: var(--gold); }
+
+  /* Install banner */
+  .install-banner {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+  .install-banner.visible { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .install-banner p { flex: 1; font-size: 0.9rem; color: var(--sand); }
+  .install-banner button {
+    background: var(--gold);
+    color: var(--bg-deep);
+    border: none;
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  /* Start screen */
+  .start-actions { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+  .btn-primary {
+    background: rgba(201,168,76,0.15);
+    border: 2px solid var(--gold);
+    color: var(--gold-light);
+    padding: 1rem 1.5rem;
+    font-family: inherit;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: rgba(201,168,76,0.25); transform: translateY(-2px); }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--sand);
+    padding: 0.8rem 1.2rem;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+  .stats-row { display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; color: var(--text-dim); font-size: 0.9rem; }
+  .stats-row strong { color: var(--gold); }
+
+  /* Game screen */
+  .game-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .game-hud .score { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--gold); }
+  .game-hud .level { font-size: 0.85rem; color: var(--text-dim); }
+  .game-hud .timer { font-size: 1.2rem; color: var(--gold-light); }
+
+  .symbol-display {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    margin: 1rem 0;
+  }
+  .symbol-card {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s;
+    animation: popIn 0.3s ease;
+  }
+  .symbol-card .glyph { font-size: 4rem; display: block; margin-bottom: 0.5rem; }
+  .symbol-card .meaning { font-size: 0.85rem; color: var(--text-dim); }
+
+  @keyframes popIn {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .sort-zones {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .sort-zone {
+    min-height: 100px;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    -webkit-user-select: none; user-select: none;
+  }
+  .sort-zone:active { transform: scale(0.98); }
+  .sort-zone.sami { border-color: rgba(179,74,58,0.4); }
+  .sort-zone.sami:hover, .sort-zone.sami:focus { background: rgba(179,74,58,0.1); border-color: var(--accent-sami); }
+  .sort-zone.egypt { border-color: rgba(42,122,106,0.4); }
+  .sort-zone.egypt:hover, .sort-zone.egypt:focus { background: rgba(42,122,106,0.1); border-color: var(--accent-egypt); }
+  .sort-zone.china { border-color: rgba(139,58,90,0.4); }
+  .sort-zone.china:hover, .sort-zone.china:focus { background: rgba(139,58,90,0.1); border-color: var(--accent-china); }
+  .sort-zone .label { font-size: 0.75rem; letter-spacing: 0.15em; font-weight: 600; }
+  .sort-zone.sami .label { color: #d4756a; }
+  .sort-zone.egypt .label { color: #5ab8a6; }
+  .sort-zone.china .label { color: #c47a9a; }
+  .sort-zone .hint { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.2rem; }
+
+  /* Result screen */
+  .result-content { text-align: center; padding: 2rem 0; }
+  .result-content h2 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; margin-bottom: 1rem; }
+  .final-score { font-size: 3.5rem; color: var(--gold); margin: 0.5rem 0; }
+  .personal-best { font-size: 1rem; color: var(--gold-dim); margin: 1rem 0; }
+  .personal-best.new { color: var(--accent-egypt); font-weight: 600; }
+  .result-content p { color: var(--sand); margin-bottom: 1rem; }
+  .result-actions { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2rem; }
+
+  /* Leaderboard */
+  .leaderboard-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .leaderboard-tabs button {
+    flex: 1;
+    padding: 0.6rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .leaderboard-tabs button.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.1); }
+  .leaderboard-list { list-style: none; }
+  .leaderboard-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .leaderboard-list li:nth-child(1) .rank { color: var(--gold); font-weight: 700; }
+  .leaderboard-list li:nth-child(2) .rank { color: var(--text-dim); }
+  .leaderboard-list li:nth-child(3) .rank { color: var(--gold-dim); }
+  .leaderboard-empty { text-align: center; padding: 3rem 1rem; color: var(--text-dim); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 400px) {
+    .sort-zone .hint { display: none; }
+    .symbol-card .glyph { font-size: 3rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Start -->
+  <section class="screen active" id="startScreen">
+    <header>
+      <a href="index.html">← Oversikt</a>
+      <h1>Symbol-<em>Sortereren</em></h1>
+      <p style="color:var(--text-dim);font-size:0.9rem;margin-top:0.5rem">Tap symbolet til riktig kultur</p>
+    </header>
+    <div class="install-banner" id="installBanner">
+      <p>Last ned appen til mobilen for raskere spill!</p>
+      <button id="installBtn">Installer</button>
+      <button class="btn-secondary" id="dismissInstall">×</button>
+    </div>
+    <div class="stats-row">
+      <span>Din rekord: <strong id="pbDisplay">0</strong></span>
+      <span>Nivå: <strong id="levelDisplay">1</strong></span>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-dim);margin-top:0.5rem;text-align:center">Symboler dukker opp – tap riktig kultur før tiden går ut. Nivå øker hastigheten!</p>
+    <div class="start-actions">
+      <button class="btn-primary" id="btnPlay">▶ Spill</button>
+      <button class="btn-secondary" id="btnLeaderboard">🏆 Leaderboard</button>
+      <button class="btn-secondary" id="btnClassic">Klassisk modus (drag)</button>
+    </div>
+  </section>
+
+  <!-- Game (Sprint) -->
+  <section class="screen" id="gameScreen">
+    <header>
+      <a href="#" id="backFromGame">← Avbryt</a>
+    </header>
+    <div class="game-hud">
+      <span class="score">Poeng: <span id="score">0</span></span>
+      <span class="level">Nivå <span id="level">1</span></span>
+      <span class="timer">⏱ <span id="timer">3.0</span>s</span>
+    </div>
+    <div class="symbol-display">
+      <div class="symbol-card hidden" id="symbolCard">
+        <span class="glyph" id="symbolGlyph">☀</span>
+        <span class="meaning" id="symbolMeaning">—</span>
+      </div>
+    </div>
+    <div class="sort-zones">
+      <div class="sort-zone sami" data-culture="sami">
+        <span class="label">Sámi</span>
+        <span class="hint">Runebomme</span>
+      </div>
+      <div class="sort-zone egypt" data-culture="egypt">
+        <span class="label">Egypt</span>
+        <span class="hint">Hieroglyfer</span>
+      </div>
+      <div class="sort-zone china" data-culture="china">
+        <span class="label">Kina</span>
+        <span class="hint">Kinesisk</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section class="screen" id="resultScreen">
+    <header><a href="#" id="backFromResult">← Tilbake</a></header>
+    <div class="result-content">
+      <h2>Runde slutt</h2>
+      <div class="final-score" id="finalScore">0</div>
+      <p class="personal-best" id="pbText">Din rekord: 0</p>
+      <p id="resultMessage">Bra jobbet!</p>
+      <div class="result-actions">
+        <button class="btn-primary" id="btnPlayAgain">Spill igjen</button>
+        <button class="btn-secondary" id="btnToLeaderboard">Se leaderboard</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Leaderboard -->
+  <section class="screen" id="leaderboardScreen">
+    <header><a href="#" id="backFromLeaderboard">← Tilbake</a></header>
+    <h1 style="text-align:center;margin-bottom:1rem">🏆 <em>Leaderboard</em></h1>
+    <p style="text-align:center;font-size:0.75rem;color:var(--text-dim);margin-bottom:1rem">
+      Viser som: <strong id="playerNameDisplay">Spiller</strong>
+      <button type="button" class="btn-secondary" id="btnSetName" style="margin-left:0.5rem;padding:0.2rem 0.5rem;font-size:0.7rem">Endre navn</button>
+    </p>
+    <div class="leaderboard-tabs">
+      <button data-tab="daily">Daglig</button>
+      <button data-tab="weekly">Ukentlig</button>
+      <button data-tab="alltime">Alltid</button>
+    </div>
+    <ul class="leaderboard-list" id="leaderboardList"></ul>
+    <p class="leaderboard-empty hidden" id="leaderboardEmpty">Ingen scores ennå. Vær den første!</p>
+  </section>
+
+</div>
+
+<script>
+  const SYMBOLS = [
+    { glyph: '☀︎', meaning: 'Beaivi', culture: 'sami' },
+    { glyph: '𓇳', meaning: 'Ra', culture: 'egypt' },
+    { glyph: '日', meaning: 'Rì', culture: 'china' },
+    { glyph: '☽', meaning: 'Mánnu', culture: 'sami' },
+    { glyph: '𓇹', meaning: 'Iah', culture: 'egypt' },
+    { glyph: '月', meaning: 'Yuè', culture: 'china' },
+    { glyph: '✦', meaning: 'Nástit', culture: 'sami' },
+    { glyph: '𓇼', meaning: 'Seba', culture: 'egypt' },
+    { glyph: '星', meaning: 'Xīng', culture: 'china' },
+    { glyph: '☥', meaning: 'Ankh', culture: 'egypt' },
+    { glyph: '回', meaning: 'Huí', culture: 'china' },
+    { glyph: '⊕', meaning: 'Solkors', culture: 'sami' },
+    { glyph: '火', meaning: 'Huǒ', culture: 'china' },
+    { glyph: '𓂀', meaning: 'Wedjat', culture: 'egypt' },
+    { glyph: '目', meaning: 'Mù', culture: 'china' },
+    { glyph: '◉', meaning: 'Čalbmi', culture: 'sami' },
+    { glyph: '旦', meaning: 'Dàn', culture: 'china' },
+    { glyph: '雨', meaning: 'Yǔ', culture: 'china' },
+    { glyph: '𓈗', meaning: 'Mw', culture: 'egypt' },
+    { glyph: '⋮', meaning: 'Arvi', culture: 'sami' },
+    { glyph: '鹿', meaning: 'Lù', culture: 'china' },
+    { glyph: '𓃹', meaning: 'Gazelle', culture: 'egypt' },
+    { glyph: '🕊', meaning: 'Loddi', culture: 'sami' },
+    { glyph: '蛇', meaning: 'Shé', culture: 'china' },
+    { glyph: '魚', meaning: 'Yú', culture: 'china' },
+    { glyph: '⋈', meaning: 'Guolli', culture: 'sami' },
+    { glyph: '犬', meaning: 'Quǎn', culture: 'china' },
+    { glyph: '牛', meaning: 'Niú', culture: 'china' },
+    { glyph: '馬', meaning: 'Mǎ', culture: 'china' },
+    { glyph: '木', meaning: 'Mù', culture: 'china' },
+    { glyph: '⸸', meaning: 'Muora', culture: 'sami' },
+    { glyph: '上', meaning: 'Shàng', culture: 'china' },
+    { glyph: '中', meaning: 'Zhōng', culture: 'china' },
+    { glyph: '下', meaning: 'Xià', culture: 'china' },
+    { glyph: '山', meaning: 'Shān', culture: 'china' },
+    { glyph: '水', meaning: 'Shuǐ', culture: 'china' },
+    { glyph: '土', meaning: 'Tǔ', culture: 'china' },
+    { glyph: '人', meaning: 'Rén', culture: 'china' },
+    { glyph: '道', meaning: 'Dào', culture: 'china' },
+    { glyph: '△', meaning: 'Bajit', culture: 'sami' },
+    { glyph: '▽', meaning: 'Jábmiid', culture: 'sami' },
+    { glyph: '≋', meaning: 'Čáhci', culture: 'sami' },
+    { glyph: '⟿', meaning: 'Geaidnu', culture: 'sami' },
+  ];
+
+  const STORAGE_KEYS = {
+    scores: 'tegnspill_scores',
+    pb: 'tegnspill_pb',
+    level: 'tegnspill_level',
+    installDismissed: 'tegnspill_install_dismissed',
+    playerName: 'tegnspill_player_name'
+  };
+
+  const cfg = (typeof window !== 'undefined' && window.TEGNSPILL_CONFIG) || {};
+  const useSupabase = !!(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
+  const SB = useSupabase ? {
+    url: cfg.SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/scores',
+    key: cfg.SUPABASE_ANON_KEY,
+    headers: () => ({
+      'apikey': cfg.SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    })
+  } : null;
+
+  function getScores() {
+    try {
+      const s = localStorage.getItem(STORAGE_KEYS.scores);
+      return s ? JSON.parse(s) : [];
+    } catch { return []; }
+  }
+
+  async function saveScore(score) {
+    const ts = Date.now();
+    const name = localStorage.getItem(STORAGE_KEYS.playerName) || 'Spiller';
+    const scores = getScores();
+    scores.push({ score, ts, name });
+    localStorage.setItem(STORAGE_KEYS.scores, JSON.stringify(scores));
+
+    if (SB) {
+      try {
+        await fetch(SB.url, { method: 'POST', headers: SB.headers(), body: JSON.stringify({ score, name, ts }) });
+      } catch (e) { console.warn('Supabase save failed:', e); }
+    }
+  }
+
+  function getPB() { return parseInt(localStorage.getItem(STORAGE_KEYS.pb) || '0', 10); }
+  function setPB(v) { localStorage.setItem(STORAGE_KEYS.pb, String(v)); }
+  function getLevel() { return parseInt(localStorage.getItem(STORAGE_KEYS.level) || '1', 10); }
+  function setLevel(v) { localStorage.setItem(STORAGE_KEYS.level, String(Math.min(10, Math.max(1, v)))); }
+
+  async function getLeaderboard(tab) {
+    if (SB) {
+      try {
+        const now = Date.now();
+        const dayStart = new Date().setHours(0, 0, 0, 0);
+        const weekStart = now - 7 * 24 * 60 * 60 * 1000;
+        let url = SB.url + '?select=score,name,ts&order=score.desc&limit=' + (cfg.LEADERBOARD_LIMIT || 20);
+        if (tab === 'daily') url += '&ts=gte.' + dayStart;
+        else if (tab === 'weekly') url += '&ts=gte.' + weekStart;
+        const r = await fetch(url, { headers: { 'apikey': cfg.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + cfg.SUPABASE_ANON_KEY } });
+        if (r.ok) {
+          const data = await r.json();
+          return (data || []).map(row => ({ score: row.score, name: row.name, ts: row.ts }));
+        }
+      } catch (e) { console.warn('Supabase fetch failed, using local:', e); }
+    }
+    const scores = getScores();
+    const now = Date.now();
+    const dayStart = new Date().setHours(0, 0, 0, 0);
+    const weekStart = now - 7 * 24 * 60 * 60 * 1000;
+    let filtered = scores;
+    if (tab === 'daily') filtered = scores.filter(s => s.ts >= dayStart);
+    else if (tab === 'weekly') filtered = scores.filter(s => s.ts >= weekStart);
+    return filtered.sort((a, b) => b.score - a.score).slice(0, cfg.LEADERBOARD_LIMIT || 20);
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // PWA install
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (!localStorage.getItem(STORAGE_KEYS.installDismissed)) {
+      document.getElementById('installBanner').classList.add('visible');
+    }
+  });
+  var installBtn = document.getElementById('installBtn');
+  if (installBtn) installBtn.addEventListener('click', function() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r) {
+        if (r.outcome === 'accepted') document.getElementById('installBanner').classList.remove('visible');
+      });
+    }
+  });
+  var dismissBtn = document.getElementById('dismissInstall');
+  if (dismissBtn) dismissBtn.addEventListener('click', function() {
+    localStorage.setItem(STORAGE_KEYS.installDismissed, '1');
+    document.getElementById('installBanner').classList.remove('visible');
+  });
+
+  // Service worker - register after page load to avoid blocking
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').catch(function() {});
+    });
+  }
+
+  // Screens
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+    var el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+
+  // Sprint game
+  let gameState = { score: 0, level: 1, correctCount: 0, current: null, queue: [], timeout: null };
+  const BASE_TIME = 3;
+  const MIN_TIME = 1.2;
+
+  function getTimeForLevel(lvl) {
+    return Math.max(MIN_TIME, BASE_TIME - (lvl - 1) * 0.18);
+  }
+
+  function nextSymbol() {
+    if (gameState.queue.length === 0) gameState.queue = shuffle([...SYMBOLS]);
+    const sym = gameState.queue.pop();
+    gameState.current = sym;
+    document.getElementById('symbolGlyph').textContent = sym.glyph;
+    document.getElementById('symbolMeaning').textContent = sym.meaning;
+    document.getElementById('symbolCard').classList.remove('hidden');
+    document.getElementById('score').textContent = gameState.score;
+    document.getElementById('level').textContent = gameState.level;
+
+    const t = getTimeForLevel(gameState.level);
+    document.getElementById('timer').textContent = t.toFixed(1);
+    let remaining = t;
+    const timerId = setInterval(() => {
+      remaining -= 0.1;
+      document.getElementById('timer').textContent = Math.max(0, remaining).toFixed(1);
+      if (remaining <= 0) {
+        clearInterval(timerId);
+        handleTimeout();
+      }
+    }, 100);
+
+    gameState.timeout = { id: timerId, remaining };
+  }
+
+  function clearGameTimeout() {
+    if (gameState.timeout) {
+      clearInterval(gameState.timeout.id);
+      gameState.timeout = null;
+    }
+  }
+
+  function handleAnswer(culture) {
+    if (!gameState.current) return;
+    clearGameTimeout();
+    const correct = gameState.current.culture === culture;
+    if (correct) {
+      gameState.score += 10 + gameState.level;
+      gameState.correctCount++;
+      if (gameState.correctCount > 0 && gameState.correctCount % 5 === 0) gameState.level++;
+      gameState.current = null;
+      document.getElementById('symbolCard').classList.add('hidden');
+      setTimeout(nextSymbol, 350);
+    } else {
+      gameState.current = null;
+      document.getElementById('symbolCard').classList.add('hidden');
+      endGame();
+    }
+  }
+
+  function handleTimeout() {
+    gameState.timeout = null;
+    gameState.current = null;
+    document.getElementById('symbolCard').classList.add('hidden');
+    endGame();
+  }
+
+  function startGame() {
+    gameState = { score: 0, level: getLevel(), correctCount: 0, current: null, queue: shuffle([...SYMBOLS]), timeout: null };
+    show('gameScreen');
+    nextSymbol();
+  }
+
+  async function endGame() {
+    clearGameTimeout();
+    show('resultScreen');
+    document.getElementById('finalScore').textContent = gameState.score;
+    await saveScore(gameState.score);
+    setLevel(gameState.level);
+
+    const pb = getPB();
+    const isNew = gameState.score > pb;
+    if (isNew) setPB(gameState.score);
+    const pbEl = document.getElementById('pbText');
+    pbEl.textContent = isNew ? 'Ny personlig rekord!' : `Din rekord: ${pb}`;
+    pbEl.classList.toggle('new', isNew);
+
+    const msg = gameState.score >= 100 ? 'Utrolig!' : gameState.score >= 50 ? 'Bra jobbet!' : 'Trening gjør mester!';
+    document.getElementById('resultMessage').textContent = msg;
+  }
+
+  document.querySelectorAll('.sort-zone').forEach(z => {
+    z.addEventListener('click', () => handleAnswer(z.dataset.culture));
+  });
+
+  // Navigation
+  document.getElementById('btnPlay').addEventListener('click', startGame);
+  document.getElementById('backFromGame').addEventListener('click', (e) => { e.preventDefault(); clearGameTimeout(); show('startScreen'); });
+  document.getElementById('btnPlayAgain').addEventListener('click', startGame);
+  document.getElementById('btnToLeaderboard').addEventListener('click', () => show('leaderboardScreen'));
+  document.getElementById('backFromResult').addEventListener('click', (e) => { e.preventDefault(); show('startScreen'); });
+
+  document.getElementById('btnLeaderboard').addEventListener('click', async () => {
+    show('leaderboardScreen');
+    await renderLeaderboard('alltime');
+  });
+  document.getElementById('backFromLeaderboard').addEventListener('click', (e) => { e.preventDefault(); show('startScreen'); });
+
+  document.getElementById('btnClassic').addEventListener('click', () => window.location.href = 'spill-classic.html');
+
+  async function renderLeaderboard(tab) {
+    document.querySelectorAll('.leaderboard-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    const list = await getLeaderboard(tab);
+    const ul = document.getElementById('leaderboardList');
+    const empty = document.getElementById('leaderboardEmpty');
+    ul.innerHTML = '';
+    if (list.length === 0) {
+      ul.classList.add('hidden');
+      empty.classList.remove('hidden');
+    } else {
+      ul.classList.remove('hidden');
+      empty.classList.add('hidden');
+      list.forEach((entry, i) => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="rank">#${i+1}</span><span>${entry.name || 'Anonym'}</span><strong>${entry.score}</strong>`;
+        ul.appendChild(li);
+      });
+    }
+  }
+  document.querySelectorAll('.leaderboard-tabs button').forEach(b => {
+    b.addEventListener('click', async () => await renderLeaderboard(b.dataset.tab));
+  });
+
+  document.getElementById('btnSetName').addEventListener('click', () => {
+    const name = prompt('Ditt navn på leaderboard:', localStorage.getItem(STORAGE_KEYS.playerName) || 'Spiller');
+    if (name && name.trim()) {
+      localStorage.setItem(STORAGE_KEYS.playerName, name.trim());
+      document.getElementById('playerNameDisplay').textContent = name.trim();
+    }
+  });
+
+  // Init
+  document.getElementById('pbDisplay').textContent = getPB();
+  document.getElementById('levelDisplay').textContent = getLevel();
+  document.getElementById('playerNameDisplay').textContent = localStorage.getItem(STORAGE_KEYS.playerName) || 'Spiller';
+</script>
+</body>
+</html>

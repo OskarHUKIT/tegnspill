@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head><title>Lag PWA-ikoner</title></head>
+<body style="font-family:sans-serif;padding:2rem;background:#0a0a0f;color:#e8e4dc">
+  <h2>Lag ikoner for Tegnspill</h2>
+  <p>Klikk for å laste ned 192x192 og 512x512 PNG-ikoner:</p>
+  <button onclick="download(192)">Last ned 192×192</button>
+  <button onclick="download(512)">Last ned 512×512</button>
+  <canvas id="c" width="512" height="512"></canvas>
+  <script>
+    function draw(ctx, size) {
+      const s = size;
+      ctx.fillStyle = '#0a0a0f';
+      ctx.fillRect(0,0,s,s);
+      ctx.fillStyle = '#c9a84c';
+      ctx.font = `bold ${s*0.45}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('☀', s/2, s/2);
+      ctx.strokeStyle = 'rgba(201,168,76,0.5)';
+      ctx.lineWidth = s*0.02;
+      ctx.strokeRect(s*0.1,s*0.1,s*0.8,s*0.8);
+    }
+    function download(size) {
+      const c = document.getElementById('c');
+      c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      draw(ctx, size);
+      const a = document.createElement('a');
+      a.download = `icon-${size}.png`;
+      a.href = c.toDataURL('image/png');
+      a.click();
+    }
+  </script>
+</body>
+</html>
